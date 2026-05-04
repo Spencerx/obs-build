@@ -361,6 +361,12 @@ sub builtinmacro {
   return $args[0] =~ /(.*)\// ? $1 : $args[0] if $macname eq 'dirname';
   return $args[0] =~ /\.([^\.]*)$/ ? $1 : '' if $macname eq 'suffix';
   return $args[0] if $macname eq 'span';
+  if ($macname eq 'quote') {
+    if ($config->{'_doquote'}) {
+      s/([ \t])/sprintf("\037%02X", ord($1))/ge for @args;
+    }
+    return join(' ', @args);
+  }
   if ($macname eq 'shrink') {
     $args[0] =~ s/[ \t]+/ /g;
     $args[0] =~ s/^ //;
@@ -481,6 +487,7 @@ my %builtin_macros = (
   'suffix' => \&builtinmacro,
   'load' => \&builtinmacro,
   'span' => \&builtinmacro,
+  'quote' => \&builtinmacro,
 
   'gsub' => \&luamacro,
   'len' => \&luamacro,
@@ -622,8 +629,10 @@ reexpand:
 	  $macdata = $1;
 	  $line = '';
 	}
+	local $config->{'_doquote'} = 1;
 	$macdata = expandmacros($config, $macdata, $macros, $macros_args, $tries);
 	push @args, split(' ', $macdata);
+	s/\037([0-9A-F]{2})/chr(hex($1))/sge for @args;
       }
 
       # handle the macro
