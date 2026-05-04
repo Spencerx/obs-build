@@ -363,7 +363,6 @@ sub builtinmacro {
   return $args[0] if $macname eq 'span';
   if ($macname eq 'quote') {
     if ($config->{'_doquote'}) {
-      push @args, "" unless @args;
       $_ ne '' || ($_ = "\037"."00") for @args;
       s/([ \t])/sprintf("\037%02X", ord($1))/ge for @args;
     }
