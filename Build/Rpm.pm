@@ -363,6 +363,8 @@ sub builtinmacro {
   return $args[0] if $macname eq 'span';
   if ($macname eq 'quote') {
     if ($config->{'_doquote'}) {
+      push @args, "" unless @args;
+      $_ ne '' || ($_ = "\037"."00") for @args;
       s/([ \t])/sprintf("\037%02X", ord($1))/ge for @args;
     }
     return join(' ', @args);
@@ -632,7 +634,7 @@ reexpand:
 	local $config->{'_doquote'} = 1;
 	$macdata = expandmacros($config, $macdata, $macros, $macros_args, $tries);
 	push @args, split(' ', $macdata);
-	s/\037([0-9A-F]{2})/chr(hex($1))/sge for @args;
+	s/\037([0-9A-F]{2})/$1 eq '00' ? '' : chr(hex($1))/sge for @args;
       }
 
       # handle the macro
