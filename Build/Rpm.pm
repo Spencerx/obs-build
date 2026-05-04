@@ -66,6 +66,29 @@ sub expr_expand {
   }
 }
 
+sub expr_do_function {
+  my ($name, $expr, $xp) = @_;
+  my @args;
+  while (1) {
+    $expr =~ s/^\s+//;
+    last if $expr =~ s/^\)//;
+    my $v;
+    ($v, $expr) = expr($expr, 0, $xp);
+    return (undef, $expr) unless defined $v;
+    push @args, expr_stringify($v);
+    $expr =~ s/^\s+//;
+    return (undef, 'unmatched function (') unless $expr =~ /^[),]/;
+    $expr =~ s/^,//;
+  }
+  if ($name =~ /^lua:string\.(.+)/) {
+    my $cf = { 'parsing_config' => 1 };
+    my $ret = luamacro($cf, undef, undef, 0, $1, @args);
+    return undef, $cf->{'parse_error'} if defined $cf->{'parse_error'};
+    return ("\"$ret", $expr);
+  }
+  return (undef, "unsupported expression function $name");
+}
+
 sub expr {
   my ($expr, $lev, $xp) = @_;
 
@@ -101,6 +124,9 @@ sub expr {
     $expr = $2;
     ($v, $expr) = expr_expand('"', substr("$1$2", 1), $xp, qr/^([^%\"]+)/) if $xp;
     $expr =~ s/^\"//s;
+  } elsif ($expr =~ /^([a-zA-Z_][a-zA-Z_0-9\.:]*)\((.*)$/s) {
+    ($v, $expr) = expr_do_function($1, $2, $xp);
+    return (undef, $expr) unless defined $v;
   } elsif ($expr =~ /^([a-zA-Z][a-zA-Z_0-9]*)(.*)$/s) {
     # actually no longer supported with new rpm versions
     $v = "\"$1";

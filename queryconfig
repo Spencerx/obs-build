@@ -97,7 +97,8 @@ if ($type eq 'buildflags') {
   die("Specify which substitute to query\n") unless $argument;
   my @res =  @{$cf->{'substitute'}->{$argument} || []};
   printout(join(' ', @res)."\n")if @res;
-} elsif ($type eq 'eval') {
+} elsif ($type eq 'eval' || $type eq 'eval-warn') {
+  $cf->{'warnings'} = 1 if $type eq 'eval-warn';
   die("Specify what to eval\n") unless defined $argument;
   my $result = Build::Rpm::expandmacros($cf, $argument);
   printout("$result\n");
